@@ -14,7 +14,7 @@ sudo apt-get -y install openvpn
 # Spawn the test environment on nimbus
 pushd vcpi-nimbus
   echo ${DBC_KEY} > ./dbc_key
-  launch -i dbc_key
+  ./launch -i dbc_key
   source environment.sh
 popd
 

@@ -4,6 +4,23 @@ set -e
 
 source bosh-cpi-src/ci/utils.sh
 source bosh-cpi-src/.envrc
+
+# Required to run and spawn nimbus testbed
+sudo apt-get update
+sudo apt-get install jq
+sudo apt-get install openvpn
+
+
+# Spawn the test environment on nimbus
+pushd vcpi-nimbus
+  echo ${DBC_KEY} > ./dbc_key
+  launch -i dbc_key
+  source environment.sh
+popd
+
+# Configure open vpn
+openvpn --config vcpi-nimbus/jumper/openvpn/client.ovpn
+
 if [ -f /etc/profile.d/chruby.sh ]; then
   source /etc/profile.d/chruby.sh
   chruby $PROJECT_RUBY_VERSION

@@ -10,4 +10,4 @@ inputs:
 outputs:
   - name: dev-artifacts
 run:
-  path: bosh-cpi-src/ci/tasks/build-candidate.sh
+  path: bosh-cpi-src/ci/vmware/tasks/build-candidate.sh

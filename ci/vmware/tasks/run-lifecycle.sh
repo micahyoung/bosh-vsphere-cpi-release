@@ -6,9 +6,9 @@ source bosh-cpi-src/ci/utils.sh
 source bosh-cpi-src/.envrc
 
 # Required to run and spawn nimbus testbed
-sudo apt-get update
-sudo apt-get install jq
-sudo apt-get install openvpn
+sudo apt-get -y update
+sudo apt-get -y install jq
+sudo apt-get -y install openvpn
 
 
 # Spawn the test environment on nimbus

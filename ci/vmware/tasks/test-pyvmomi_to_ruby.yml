@@ -6,4 +6,4 @@ image_resource:
 inputs:
   - name: bosh-cpi-src
 run:
-  path: bosh-cpi-src/ci/tasks/test-pyvmomi_to_ruby.sh
+  path: bosh-cpi-src/ci/vmware/tasks/test-pyvmomi_to_ruby.sh

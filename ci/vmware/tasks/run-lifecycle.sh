@@ -9,6 +9,8 @@ source bosh-cpi-src/.envrc
 sudo apt-get -y update
 sudo apt-get -y install jq
 sudo apt-get -y install openvpn
+sudo apt-get -y install openssh-client
+sudo apt-get -y install rsync
 
 
 # Spawn the test environment on nimbus

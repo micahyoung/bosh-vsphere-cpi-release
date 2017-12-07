@@ -15,7 +15,7 @@ sudo apt-get -y install rsync
 
 # Spawn the test environment on nimbus
 pushd vcpi-nimbus
-  echo ${DBC_KEY} > ./dbc_key
+  echo "$DBC_KEY" > ./dbc_key
   chmod 400 dbc_key
   ./launch -i dbc_key
   source environment.sh

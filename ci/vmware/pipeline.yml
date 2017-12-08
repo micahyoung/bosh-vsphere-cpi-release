@@ -39,6 +39,7 @@ jobs:
         - {trigger: true,                             get: vcpi-nimbus}
       - task: test
         file: bosh-cpi-src/ci/vmware/tasks/run-lifecycle.yml
+        privileged: true
         params:
           RSPEC_FLAGS: "--tag ~nsx_vsphere --tag ~nsx_transformers"
           DBC_USER: {{dbc_user}}

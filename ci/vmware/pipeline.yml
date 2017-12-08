@@ -45,6 +45,7 @@ jobs:
           DBC_USER: {{dbc_user}}
           DBC_HOST: {{dbc_host}}
           DBC_KEY: {{dbc_key}}
+          EXISTING_TESTBED: {{existing_testbed}}
 
 
 resources:

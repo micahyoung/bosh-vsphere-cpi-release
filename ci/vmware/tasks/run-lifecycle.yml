@@ -18,3 +18,4 @@ params:
   DBC_HOST:                                             ""
   BOSH_VSPHERE_VERIFY_LIMITED_PERMISSIONS:              true
   DBC_KEY:                                              ""
+  EXISTING_TESTBED:                                     ""

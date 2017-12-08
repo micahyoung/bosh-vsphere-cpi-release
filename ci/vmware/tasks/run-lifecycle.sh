@@ -21,8 +21,7 @@ pushd vcpi-nimbus
   source environment.sh
 popd
 
-# Configure open vpn
-openvpn --config vcpi-nimbus/jumper/openvpn/client.ovpn
+export HTTP_PROXY="http://$BOSH_VSPHERE_JUMPER_HOST:3128"
 
 if [ -f /etc/profile.d/chruby.sh ]; then
   source /etc/profile.d/chruby.sh

@@ -21,6 +21,7 @@ pushd vcpi-nimbus
   source environment.sh
 popd
 
+export BOSH_VSPHERE_STEMCELL=stemcell/stemcell.tgz
 export HTTP_PROXY="http://$BOSH_VSPHERE_JUMPER_HOST:3128"
 
 if [ -f /etc/profile.d/chruby.sh ]; then

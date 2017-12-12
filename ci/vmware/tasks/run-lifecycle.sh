@@ -11,46 +11,43 @@ sudo apt-get -y install jq
 sudo apt-get -y install openvpn
 sudo apt-get -y install openssh-client
 sudo apt-get -y install rsync
+sudo apt-get -y install sshpass
 
 
 # Spawn the test environment on nimbus
 pushd vcpi-nimbus
   echo "$DBC_KEY" > ./dbc_key
   chmod 400 dbc_key
-  ./launch -i dbc_key
+  #./launch -i dbc_key
   source environment.sh
 popd
 
-stemcell_dir="$( cd stemcell && pwd )"
-export BOSH_VSPHERE_STEMCELL=${stemcell_dir}/stemcell.tgz
-export HTTP_PROXY="http://$BOSH_VSPHERE_JUMPER_HOST:3128"
+export JUMPBOX_PASSWORD='vcpi'
+export JUMPBOX_REMOTE="vcpi@$BOSH_VSPHERE_JUMPER_HOST"
+export JUMPBOX_BUILD_DIR='~'
+export PARENT_DIR="$PWD"
 
-if [ -f /etc/profile.d/chruby.sh ]; then
-  source /etc/profile.d/chruby.sh
-  chruby $PROJECT_RUBY_VERSION
-fi
+echo $JUMPBOX_PASSWORD
+echo $JUMPBOX_REMOTE
+echo $JUMPBOX_BUILD_DIR
+echo $PARENT_DIR
 
-: ${RSPEC_FLAGS:=""}
-: ${BOSH_VSPHERE_STEMCELL:=""}
-
-# allow user to pass paths to spec files relative to src/vsphere_cpi
-# e.g. ./run-lifecycle.sh spec/integration/core_spec.rb
-if [ "$#" -ne 0 ]; then
-  RSPEC_ARGS="$@"
-fi
-
-install_iso9660wrap() {
-  pushd bosh-cpi-src
-    pushd src/iso9660wrap
-      go build ./...
-      export PATH="$PATH:$PWD"
-    popd
-  popd
-}
-
-install_iso9660wrap
-
-pushd bosh-cpi-src/src/vsphere_cpi
-  bundle install
-  bundle exec rspec ${RSPEC_FLAGS} --require ./spec/support/verbose_formatter.rb --format VerboseFormatter spec/integration
+pushd vcpi-nimbus
+  echo "export RSPEC_FLAGS=\"$RSPEC_FLAGS\"" >> environment.sh
 popd
+
+# Ensure tmpdir and control socket are cleaned up on exit
+master_exit() {
+  ssh -o "StrictHostKeyChecking no" -O exit -S "$tmpdir/master.sock" $remote &> /dev/null
+  rm -rf "$tmpdir"
+}
+trap master_exit EXIT
+
+tmpdir="$(mktemp -dt master 2> /dev/null || mktemp -dt master.XXXX)"
+sshpass -p $JUMPBOX_PASSWORD ssh -MNfS "$tmpdir/master.sock" -o "StrictHostKeyChecking no" -o ControlPersist=0 $JUMPBOX_REMOTE
+sshpass -p $JUMPBOX_PASSWORD rsync -ave "ssh -S '$tmpdir/master.sock'" \
+  "$PARENT_DIR/" \
+  $JUMPBOX_REMOTE:$JUMPBOX_BUILD_DIR
+
+ssh -S "$tmpdir/master.sock" $JUMPBOX_REMOTE 'chmod +x ~/bosh-cpi-src/ci/vmware/tasks/run-test.sh'
+ssh -S "$tmpdir/master.sock" $JUMPBOX_REMOTE '~/bosh-cpi-src/ci/vmware/tasks/run-test.sh'

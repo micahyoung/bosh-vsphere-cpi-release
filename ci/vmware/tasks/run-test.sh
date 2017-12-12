@@ -4,7 +4,7 @@ set -e
 
 source bosh-cpi-src/ci/utils.sh
 source bosh-cpi-src/.envrc
-bosh-cpi-src/dev-utils.sh
+bosh-cpi-src/ci/dev-utils.sh
 
 # Source the test environment variables
 pushd vcpi-nimbus

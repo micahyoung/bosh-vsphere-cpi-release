@@ -33,7 +33,7 @@ cd /tmp && \
     tar -xzvf chruby-$CHRUBY_VERSION.tar.gz && \
    cd chruby-$CHRUBY_VERSION/ && \
     sudo ./scripts/setup.sh && \
-    rm -rf /tmp/chruby-$CHRUBY_VERSION &&  rm -rf /tmp/*
+    rm -rf /tmp/chruby-$CHRUBY_VERSION &&  sudo rm -rf /tmp/*
 
 # Install ruby-install
 cd /tmp && \
@@ -43,7 +43,7 @@ cd /tmp && \
    tar -xzvf ruby-install-$RUBY_INSTALL_VERSION.tar.gz && \
   cd ruby-install-$RUBY_INSTALL_VERSION/ && \
    sudo make install && \
-   rm -rf /tmp/ruby-install-$RUBY_INSTALL_VERSION &&  rm -rf /tmp/*
+   rm -rf /tmp/ruby-install-$RUBY_INSTALL_VERSION &&  sudo rm -rf /tmp/*
 
 # Install Ruby
 sudo ruby-install ruby $RUBY_VERSION -- --disable-install-rdoc

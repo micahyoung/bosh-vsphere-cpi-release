@@ -32,8 +32,7 @@ cd /tmp && \
     gpg --verify chruby-$CHRUBY_VERSION.tar.gz.asc chruby-$CHRUBY_VERSION.tar.gz && \
     tar -xzvf chruby-$CHRUBY_VERSION.tar.gz && \
    cd chruby-$CHRUBY_VERSION/ && \
-    sudo ./scripts/setup.sh && \
-    rm -rf /tmp/chruby-$CHRUBY_VERSION &&  sudo rm -rf /tmp/*
+    sudo ./scripts/setup.sh
 
 # Install ruby-install
 cd /tmp && \
@@ -42,8 +41,7 @@ cd /tmp && \
    gpg --verify ruby-install-$RUBY_INSTALL_VERSION.tar.gz.asc ruby-install-$RUBY_INSTALL_VERSION.tar.gz && \
    tar -xzvf ruby-install-$RUBY_INSTALL_VERSION.tar.gz && \
   cd ruby-install-$RUBY_INSTALL_VERSION/ && \
-   sudo make install && \
-   rm -rf /tmp/ruby-install-$RUBY_INSTALL_VERSION &&  sudo rm -rf /tmp/*
+   sudo make install
 
 # Install Ruby
 sudo ruby-install ruby $RUBY_VERSION -- --disable-install-rdoc
@@ -62,7 +60,6 @@ cd /tmp && \
         echo '1862f4c3d3907e59b04a757cfda0ea7aa9ef39274af99a784f5be843c80c6772 go1.8.3.linux-amd64.tar.gz' | \
         sha256sum -c - \
     ) && \
-    sudo tar -C /usr/local -xzf go*.tar.gz && \
-     rm go*.tar.gz
+    sudo tar -C /usr/local -xzf go*.tar.gz
 
 mkdir -p /opt/go

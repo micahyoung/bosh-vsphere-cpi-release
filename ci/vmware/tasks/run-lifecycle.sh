@@ -49,5 +49,5 @@ sshpass -p $JUMPBOX_PASSWORD rsync -ave "ssh -S '$tmpdir/master.sock'" \
   "$PARENT_DIR/" \
   $JUMPBOX_REMOTE:$JUMPBOX_BUILD_DIR
 
-sshpass -p $JUMPBOX_PASSWORD ssh -S "$tmpdir/master.sock" $JUMPBOX_REMOTE 'chmod +x ~/bosh-cpi-src/ci/vmware/tasks/run-test.sh'
-sshpass -p $JUMPBOX_PASSWORD ssh -S "$tmpdir/master.sock" $JUMPBOX_REMOTE '~/bosh-cpi-src/ci/vmware/tasks/run-test.sh'
+sshpass -p $JUMPBOX_PASSWORD ssh $JUMPBOX_REMOTE 'chmod +x ~/bosh-cpi-src/ci/vmware/tasks/run-test.sh'
+sshpass -p $JUMPBOX_PASSWORD ssh $JUMPBOX_REMOTE '~/bosh-cpi-src/ci/vmware/tasks/run-test.sh'

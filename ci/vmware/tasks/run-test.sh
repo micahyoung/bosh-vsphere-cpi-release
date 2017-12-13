@@ -4,7 +4,8 @@ set -e
 
 source bosh-cpi-src/ci/utils.sh
 source bosh-cpi-src/.envrc
-bosh-cpi-src/ci/dev-utils.sh
+
+export PATH="/usr/local/go/bin:/opt/go:$PATH"
 
 # Source the test environment variables
 pushd vcpi-nimbus

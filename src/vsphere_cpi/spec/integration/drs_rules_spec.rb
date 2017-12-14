@@ -1,6 +1,6 @@
 require 'integration/spec_helper'
 
-describe 'DRS rules', drs: true do
+describe 'DRS rules', :ci => true do
   context 'when vm was migrated to another datastore within first cluster' do
     before (:all) do
       @datacenter_name = fetch_and_verify_datacenter('BOSH_VSPHERE_CPI_DATACENTER')

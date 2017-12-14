@@ -31,7 +31,6 @@ module VSphereCloud
           nil # continue if no placements exist for this cluster
         end
       end.compact.to_h
-
       if placement_options.size == 0
         disk_string = DatastorePicker.pretty_print_disks(disk_configurations)
         raise Bosh::Clouds::CloudError,
@@ -58,6 +57,7 @@ module VSphereCloud
     private
 
     def filter_on_memory(req_memory)
+      puts "filter_on_memory: @available_clusters: #{@available_clusters}"
       @available_clusters.reject { |cluster| cluster.free_memory < req_memory + @mem_headroom }
     end
 

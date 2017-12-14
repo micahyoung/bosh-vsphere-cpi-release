@@ -1,6 +1,7 @@
 require 'integration/spec_helper'
+require 'pry-byebug'
 
-describe 'host-local storage patterns', :host_local => true do
+describe 'host-local storage patterns', :ci => true do
   include LifecycleProperties
 
   let(:local_disk_cpi) { VSphereCloud::Cloud.new(local_disk_options) }

@@ -1,6 +1,6 @@
 require 'integration/spec_helper'
 
-describe 'cloud_properties related to clusters' do
+describe 'cloud_properties related to clusters', :ci => true do
   before (:all) do
     @datacenter_name = fetch_and_verify_datacenter('BOSH_VSPHERE_CPI_DATACENTER')
 

@@ -40,14 +40,20 @@ module VSphereCloud
 
       # @return [Integer] amount of free memory in the cluster
       def free_memory
+        @logger.debug("free_memory: @synced_free_memory: #{@synced_free_memory}") if @synced_free_memory
         return @synced_free_memory if @synced_free_memory
         # Have to use separate mechanisms for fetching utilization depending on
         # whether we're using resource pools or raw clusters.
         if @config.resource_pool.nil?
+          @logger.debug("free_memory: No resource pool")
           @synced_free_memory = fetch_cluster_utilization(properties['host'])
         else
+          @logger.debug("free_memory: resource pool present")
+
           @synced_free_memory = fetch_resource_pool_utilization
         end
+        @logger.debug("free_memory: return @synced_free_memory: #{@synced_free_memory}")
+        @synced_free_memory
       end
 
       # @return [String] cluster name.
@@ -88,22 +94,27 @@ module VSphereCloud
       # @param [Array<Vim::HostSystem>] cluster_host_systems cluster hosts.
       # @return [void]
       def fetch_cluster_utilization(cluster_host_systems)
+        @logger.debug("Cluster utilization: start")
         hosts_properties = @client.cloud_searcher.get_properties(
           cluster_host_systems, Vim::HostSystem, HOST_PROPERTIES, ensure_all: true)
         active_host_mobs = select_active_host_mobs(hosts_properties)
+        @logger.debug("Cluster utilization: active_host_mobs.empty?: #{active_host_mobs.empty?}")
 
         synced_free_memory = 0
         return synced_free_memory if active_host_mobs.empty?
 
         cluster_free_memory = 0
-
+        @logger.debug("Active hosts mobs count: #{active_host_mobs.count}")
         counters = @client.get_perf_counters(active_host_mobs, HOST_COUNTERS, max_sample: 5)
+        @logger.debug("fetch_cluster_utilization: host counters: Total: #{counters.count}, #{counters.inspect} ")
+
         counters.each do |host_mob, counter|
           host_properties = hosts_properties[host_mob]
           total_memory = host_properties['hardware.memorySize'].to_i
           free_memory = 0
           if !counter['mem.usage.average'].nil?
             percent_used = Util.average_csv(counter['mem.usage.average']) / 10000
+            @logger.debug("host '#{host_properties['name']}' percent_used: #{percent_used} from total_memory: #{total_memory}")
             free_memory = ((1.0 - percent_used) * total_memory).to_i
           else
             logger.warn("host '#{host_properties['name']}' is missing 'mem.usage.average' (possibly recently booted), ignoring")
@@ -111,6 +122,7 @@ module VSphereCloud
 
           cluster_free_memory += free_memory
         end
+        @logger.debug("fetch_cluster_utilization: Return Cluster free memory: #{cluster_free_memory} ")
 
         cluster_free_memory / BYTES_IN_MB
       end
@@ -147,9 +159,11 @@ module VSphereCloud
 
         if runtime_info.overall_status == "green"
           memory = runtime_info.memory
+          @logger.debug("fetch_resource_pool_utilization: cluster: #{config.name}, resource_pool: #{resource_pool.mob}, runtime info memory: memory.max_usage #{memory.max_usage}, overall usage: #{memory.overall_usage}")
+
           return (memory.max_usage - memory.overall_usage) / BYTES_IN_MB
         else
-          logger.warn("Ignoring cluster: #{config.name} resource_pool: " +
+          @logger.warn("Ignoring cluster: #{config.name} resource_pool: " +
                          "#{resource_pool.mob} as its state is " +
                          "unreliable: #{runtime_info.overall_status}")
           return 0

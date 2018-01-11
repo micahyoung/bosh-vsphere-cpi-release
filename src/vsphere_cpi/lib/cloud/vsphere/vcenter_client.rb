@@ -71,6 +71,12 @@ module VSphereCloud
       end
     end
 
+    def upgrade_virtual_hardware(vm)
+      wait_for_task do
+        vm.upgrade_virtual_hardware(nil)
+      end
+    end
+
     def answer_vm(vm, question, answer)
       vm.answer(question, answer)
     end

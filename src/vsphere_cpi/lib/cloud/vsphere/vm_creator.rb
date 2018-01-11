@@ -94,7 +94,9 @@ module VSphereCloud
           config: config_spec
         )
       end
+
       created_vm = Resources::VM.new(vm_config.name, created_vm_mob, @client, @logger)
+      created_vm.upgrade_virtual_hardware
 
       # Set agent env settings
       begin

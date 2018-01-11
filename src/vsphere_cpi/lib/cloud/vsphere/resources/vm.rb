@@ -190,6 +190,10 @@ module VSphereCloud
         @host_properties = nil
       end
 
+      def upgrade_virtual_hardware
+        @client.upgrade_virtual_hardware(@mob)
+      end
+
       def wait_until_off(timeout)
         started = Time.now
         loop do

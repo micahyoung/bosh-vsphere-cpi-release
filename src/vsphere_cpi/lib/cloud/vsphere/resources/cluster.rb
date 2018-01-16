@@ -44,7 +44,7 @@ module VSphereCloud
         # Have to use separate mechanisms for fetching utilization depending on
         # whether we're using resource pools or raw clusters.
         if @config.resource_pool.nil?
-          @synced_free_memory = fetch_cluster_utilization(properties['host'])
+          @synced_free_memory = fetch_cluster_utilization
         else
           @synced_free_memory = fetch_resource_pool_utilization
         end
@@ -81,39 +81,21 @@ module VSphereCloud
 
       # Fetches the raw cluster utilization from vSphere.
       #
-      # First filter out any hosts that are in maintenance mode. Then aggregate
-      # individual host capacity and its utilization using the performance
-      # manager.
-      #
-      # @param [Array<Vim::HostSystem>] cluster_host_systems cluster hosts.
-      # @return [void]
-      def fetch_cluster_utilization(cluster_host_systems)
-        hosts_properties = @client.cloud_searcher.get_properties(
-          cluster_host_systems, Vim::HostSystem, HOST_PROPERTIES, ensure_all: true)
-        active_host_mobs = select_active_host_mobs(hosts_properties)
-
-        synced_free_memory = 0
-        return synced_free_memory if active_host_mobs.empty?
-
-        cluster_free_memory = 0
-
-        counters = @client.get_perf_counters(active_host_mobs, HOST_COUNTERS, max_sample: 5)
-        counters.each do |host_mob, counter|
-          host_properties = hosts_properties[host_mob]
-          total_memory = host_properties['hardware.memorySize'].to_i
-          free_memory = 0
-          if !counter['mem.usage.average'].nil?
-            percent_used = Util.average_csv(counter['mem.usage.average']) / 10000
-            free_memory = ((1.0 - percent_used) * total_memory).to_i
-          else
-            logger.warn("host '#{host_properties['name']}' is missing 'mem.usage.average' (possibly recently booted), ignoring")
-          end
-
-          cluster_free_memory += free_memory
+      # @return
+      def fetch_cluster_utilization()
+        require 'pry-byebug'
+        binding.pry
+        properties = @client.cloud_searcher.get_properties(mob, Vim::ClusterComputeResource, 'summary')
+        raise "Failed to get utilization for cluster'#{self.mob.name}'" if properties.nil?
+        compute_resource_summary = properties["summary"]
+        if compute_resource_summary.overall_status == "green"
+          return compute_resource_summary.effective_memory
+        else
+          logger.warn("Ignoring cluster: #{mob.name} " +
+            "as its state is " +
+            "unreliable: #{compute_resource_summary.overall_status}")
+          return 0
         end
-
-        cluster_free_memory / BYTES_IN_MB
-      end
 
       # Filters out the hosts that are in maintenance mode.
       #

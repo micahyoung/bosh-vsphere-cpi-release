@@ -78,7 +78,13 @@ module LifecycleHelpers
   rescue RuntimeError => e
     fail("#{e.message}\n#{env_var_name}: #{MISSING_KEY_MESSAGES[env_var_name]}")
   end
-  
+
+  def verify_datastore_cluster(cpi, datastore_cluster_name, env_var_name)
+     datastore_cluster =  cpi.client.find_by_inventory_path("/#{cpi.datacenter.name}/datastore/#{datastore_cluster_name}")
+#    datastore_clusters = cpi.client.cloud_searcher.get_managed_objects(VimSdk::Vim::StoragePod, name: datastore_cluster_name)
+    fail "Invalid Environment variable '#{env_var_name}': No Datastore Cluster found with name: '#{datastore_cluster_name}'" unless datastore_cluster.is_a?(VimSdk::Vim::StoragePod)
+  end
+
   def verify_cluster_free_space(cpi, cluster1_name, cluster2_name)
     cluster1 = cpi.datacenter.find_cluster(cluster1_name)
     cluster2 = cpi.datacenter.find_cluster(cluster2_name)
@@ -406,6 +412,14 @@ module LifecycleHelpers
   def datastore_names_matching_pattern(cpi, cluster_name, pattern)
     all_datastore_names = datastores_accessible_from_cluster(cpi, cluster_name)
     all_datastore_names.select { |name| name =~ Regexp.new(pattern) }
+  end
+
+
+  def turn_drs_off_for_datastore_cluster(cpi, datastore_cluster_name)
+#     datastore_cluster =  cpi.client.find_by_inventory_path("/#{cpi.datacenter.name}/datastore/#{datastore_cluster_name}")
+#     cluster_config_spec = VimSdk::Vim::Cluster::ConfigSpecEx.new
+#     cluster_config_spec.drs_config = VimSdk::Vim::Cluster::DrsConfigInfo.new(enabled: false)
+#     datastore_cluster.reconfigure_compute_resource(spec: cluster_config_spec, modify: true)
   end
 
   private

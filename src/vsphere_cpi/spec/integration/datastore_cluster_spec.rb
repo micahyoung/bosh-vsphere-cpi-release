@@ -1,4 +1,5 @@
 require 'integration/spec_helper'
+require 'pry-byebug'
 
 context 'when regex matching datastores in a datastore cluster (datastore-*)' do
   before (:all) do
@@ -22,7 +23,7 @@ context 'when regex matching datastores in a datastore cluster (datastore-*)' do
     VSphereCloud::Cloud.new(options)
   end
 
-  it 'should place disk into datastores that belong to the datastore cluster' do
+  it 'should place disk into datastores that belong to the datastore cluster' do #TODO: correct setup so that these datastores are actually inside a datastore cluster
     begin
       @vm_id = cpi.create_vm(
         'agent-007',
@@ -47,94 +48,93 @@ context 'when regex matching datastores in a datastore cluster (datastore-*)' do
   end
 end
 
-context 'when cluster is not defined in global config' do
+context 'when datastore cluster is also defined in vm_type' do
   before (:all) do
+    @datastore_cluster = fetch_and_verify_datastore_cluster('BOSH_VSPHERE_CPI_DATASTORE_CLUSTER')
     @cluster_name = fetch_and_verify_cluster('BOSH_VSPHERE_CPI_CLUSTER')
-    @datastore_pattern = fetch_and_verify_datastore('BOSH_VSPHERE_CPI_DATASTORE_IN_DATASTORE_CLUSTER', @cluster_name)
-    @disjoint_cluster = fetch_and_verify_cluster('BOSH_VSPHERE_CPI_SECOND_CLUSTER') #cluster which has a disjoint datastore (not shared with any other cluster)
-    @disjoint_datastore = fetch_and_verify_datastore('BOSH_VSPHERE_CPI_SECOND_CLUSTER_DATASTORE', @disjoint_cluster)
-    @datacenter_name = fetch_and_verify_datacenter('BOSH_VSPHERE_CPI_DATACENTER')
+    @resource_pool_name = fetch_and_verify_resource_pool('BOSH_VSPHERE_CPI_RESOURCE_POOL', @cluster_name)
+    @datastore_in_dc = fetch_and_verify_datastore('BOSH_VSPHERE_CPI_SHARED_DATASTORE', @cluster_name) #datastore which is part of datastore cluster
+    @another_datastore = fetch_and_verify_datastore('BOSH_VSPHERE_CPI_DATASTORE_PATTERN', @cluster_name)
+  end
+  let(:cpi) do
+    VSphereCloud::Cloud.new(cpi_options)
   end
   let(:vm_type) do
     {
-        'ram' => 512,
-        'disk' => 2048,
-        'cpu' => 1,
-        'datacenters' => [
-            {
-                'name' => @datacenter_name,
-                'datastores' =>  [@disjoint_datastore],
-                'clusters' => [
-                    {
-                      @disjoint_cluster => {}
-                    }
-                ]
-            }
-        ]
+      'ram' => 512,
+      'disk' => 2048,
+      'cpu' => 1,
+      'datastores' => [@another_datastore, 'cluster' => @datastore_cluster]
     }
   end
-  let(:cpi) do
-    options = cpi_options(
-        'datacenters' => [
-            {
-                'name' => @datacenter_name,
-                'datastore_pattern' => @datastore_pattern,
-                'persistent_datastore_pattern' => @datastore_pattern,
-                'clusters' => [
-                    {
-                        @cluster_name => {}
-                    },
-                ]
-            }
-        ]
-    )
-    VSphereCloud::Cloud.new(options)
-  end
-
-  let(:disjoint_cluster_cpi) do
-    options = cpi_options(
-        'datacenters' => [
-            {
-                'name' => @datacenter_name,
-                'datastore_pattern' => @datastore_pattern,
-                'persistent_datastore_pattern' => @datastore_pattern,
-                'clusters' => [
-                    {
-                      @disjoint_cluster => {}
-                    },
-                ]
-            }
-        ]
-    )
-    VSphereCloud::Cloud.new(options)
-  end
-
-  let(:disk_pool) { { 'datastores' => [@disjoint_datastore] } }
-
-  it 'should place disk into datastore that belongs to the cluster defined in cloud config' do
-    begin
-      vm_id = cpi.create_vm(
+  context 'and drs is enabled' do
+    it 'should place the ephemeral disk in datastore part of datastore cluster' do
+      begin
+        vm_id = cpi.create_vm(
           'agent-007',
           @stemcell_id,
           vm_type,
           get_network_spec,
           [],
           {}
-      )
-      expect(vm_id).to_not be_nil
-      vm = cpi.vm_provider.find(vm_id)
-      expect(vm.cluster).to eq(@disjoint_cluster)
-      expect(cpi.has_vm?(vm_id)).to be(true)
+        )
+        expect(vm_id).to_not be_nil
+        vm = cpi.vm_provider.find(vm_id)
+        ephemeral_disk = vm.ephemeral_disk
+        expect(ephemeral_disk).to_not be_nil
 
-      disk_id = cpi.create_disk(2048, disk_pool, vm_id)
-      expect(disk_id).to_not be_nil
-      expect(disjoint_cluster_cpi.has_disk?(disk_id)).to be(true)
-      disk = disjoint_cluster_cpi.datacenter.find_disk(VSphereCloud::DirectorDiskCID.new(disk_id))
-      expect(disk.datastore.name).to eq(@disjoint_datastore)
-    ensure
-      delete_vm(cpi, vm_id)
-      delete_disk(disjoint_cluster_cpi, disk_id)
+        ephemeral_datastore = ephemeral_disk.backing.datastore
+        expect(ephemeral_datastore.name).to eq(@datastore_in_dc)
+      ensure
+        delete_vm(cpi, vm_id)
+      end
+    end
+    it 'should place vm in the given resource pool' do
+      vm_type.merge({
+        datacenters: [{
+          clusters: [{ @cluster_name => { 'resource_pool' => @resource_pool_name } }],
+        }]
+      })
+      begin
+        vm_id = cpi.create_vm(
+          'agent-007',
+          @stemcell_id,
+          vm_type,
+          get_network_spec,
+          [],
+          {}
+        )
+        expect(vm_id).to_not be_nil
+        vm = cpi.vm_provider.find(vm_id)
+        expect(vm.resource_pool).to eq(@resource_pool_name)
+      ensure
+        delete_vm(cpi, vm_id)
+      end
     end
   end
+  context 'and drs is not enabled' do
+    it 'should place disk in datastore' do
+      #turn_drs_off_for_datastore_cluster(cpi, @datastore_cluster)
+      #datastore_cluster.pod_storage_drs_entry.storage_drs_config.pod_config.enabled or stub this method to return false
+      begin
+        vm_id = cpi.create_vm(
+          'agent-007',
+          @stemcell_id,
+          vm_type,
+          get_network_spec,
+          [],
+          {}
+        )
+        expect(vm_id).to_not be_nil
+        vm = cpi.vm_provider.find(vm_id)
+        ephemeral_disk = vm.ephemeral_disk
+        expect(ephemeral_disk).to_not be_nil
 
+        ephemeral_ds = ephemeral_disk.backing.datastore.name
+        expect(ephemeral_ds).to eq(@another_datastore)
+      ensure
+        delete_vm(cpi, vm_id)
+      end
+    end
+  end
 end

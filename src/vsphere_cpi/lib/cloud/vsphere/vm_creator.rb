@@ -12,9 +12,16 @@ module VSphereCloud
       @enable_auto_anti_affinity_drs_rules = enable_auto_anti_affinity_drs_rules
     end
 
+    def choose_storage(vm_config)
+      vm_config.cluster.accessible_datastores[vm_config.ephemeral_datastore_name]
+    end
+
     def create(vm_config)
       cluster = vm_config.cluster
-      datastore = cluster.accessible_datastores[vm_config.ephemeral_datastore_name]
+
+      storage = choose_storage(vm_config)
+
+      datastore = storage.is_a?(StoragePod) ? nil : storage
 
       @ip_conflict_detector.ensure_no_conflicts(vm_config.vsphere_networks)
 
@@ -88,10 +95,12 @@ module VSphereCloud
           vm_config.name,
           @datacenter.vm_folder.mob,
           cluster.resource_pool.mob,
-          datastore: datastore.mob,
+          # When using a StoragePod datastore will be nil so use the safe navigation operator to get mob
+          datastore: datastore&.mob,
           linked: true,
           snapshot: snapshot.current_snapshot,
-          config: config_spec
+          config: config_spec,
+          datastore_cluster: storage_pod
         )
       end
       created_vm = Resources::VM.new(vm_config.name, created_vm_mob, @client, @logger)

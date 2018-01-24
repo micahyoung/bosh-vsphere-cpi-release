@@ -103,7 +103,16 @@ module VSphereCloud
     end
 
     def datastore_clusters
-      []
+      datastore_clusters = vm_type['datastores'].select do |entry|
+        hash = Hash.try_convert(entry)
+        next if hash.nil?
+        hash.key?('cluster')
+      end.map do |hash|
+        hash['cluster']
+      end
+      datastore_clusters.map do |name|
+        VSphereCloud::Resources::StoragePod.find(name, @cluster_provider.datacenter_name, @cluster_provider.client)
+      end.select(&:drs_enabled?)
     end
 
     private

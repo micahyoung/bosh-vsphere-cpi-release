@@ -64,7 +64,7 @@ context 'when datastore cluster is also defined in vm_type' do
       'ram' => 512,
       'disk' => 2048,
       'cpu' => 1,
-      'datastores' => [@another_datastore, 'cluster' => @datastore_cluster]
+      'datastores' => [@another_datastore, 'cluster' => [@datastore_cluster => {}]]
     }
   end
   context 'and drs is enabled' do

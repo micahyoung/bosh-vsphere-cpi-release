@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'pry-byebug'
 
 module VSphereCloud
   describe VmConfig do
@@ -751,7 +752,7 @@ module VSphereCloud
         let(:input) do
           {
             vm_type: {
-              'datastores' => ['fake-datastore', { 'cluster' => @drs_enabled_datastore_cluster }, { 'cluster' => @drs_disabled_datastore_cluster }]
+              'datastores' => ['fake-datastore', { 'clusters' => [{@drs_enabled_datastore_cluster => {}}, {@drs_disabled_datastore_cluster => {} }] }]
             }
           }
         end

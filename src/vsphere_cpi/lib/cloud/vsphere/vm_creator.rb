@@ -21,14 +21,14 @@ module VSphereCloud
 
     def create(vm_config)
       cluster = vm_config.cluster
-
       storage = choose_storage(vm_config)
 
       datastore, datastore_cluster = storage.is_a?(Resources::StoragePod) ? [nil, storage] : [storage, nil]
 
       @ip_conflict_detector.ensure_no_conflicts(vm_config.vsphere_networks)
 
-      @logger.info("Creating vm: #{vm_config.name} on #{cluster.mob} stored in #{datastore.mob}")
+      @logger.info("Creating vm: #{vm_config.name} on #{cluster.mob} stored in #{datastore.mob}") if datastore
+      @logger.info("Creating vm: #{vm_config.name} on #{cluster.mob} stored in Datastore Cluster: #{datastore_cluster.name}") if datastore_cluster
 
       # Replicate stemcell stage
       replicated_stemcell_vm_mob = @cpi.replicate_stemcell(cluster, datastore, vm_config.stemcell_cid, datastore_cluster)

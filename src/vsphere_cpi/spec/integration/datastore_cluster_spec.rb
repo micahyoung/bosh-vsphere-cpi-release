@@ -68,6 +68,12 @@ context 'when datastore cluster is also defined in vm_type' do
     }
   end
   context 'and drs is enabled' do
+    let(:datastore_cluster_1) do
+      instance_double(VSphereCloud::Resources::StoragePod,
+        name: @datastore_cluster,
+        drs_enabled?: true
+      )
+    end
     it 'should place the ephemeral disk in datastore part of datastore cluster' do
       begin
         vm_id = cpi.create_vm(
@@ -78,6 +84,7 @@ context 'when datastore cluster is also defined in vm_type' do
           [],
           {}
         )
+        expect(VSphereCloud::VmCreator.any_instance).to receive(:choose_storage).and_return(datastore_cluster_1)
         expect(vm_id).to_not be_nil
         vm = cpi.vm_provider.find(vm_id)
         ephemeral_disk = vm.ephemeral_disk

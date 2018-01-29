@@ -506,21 +506,26 @@ module VSphereCloud
 
     # Replicating a stemcell allows the creation of linked clones which can share files with a snapshot.
     # For details see https://www.vmware.com/support/ws5/doc/ws_clone_overview.html.
-    def replicate_stemcell(cluster, to_datastore, stemcell_id)
+    def replicate_stemcell(cluster, to_datastore, stemcell_id, datastore_cluster=nil)
       original_stemcell_vm = self.client.find_vm_by_name(@datacenter.mob, stemcell_id)
       raise "Could not find VM for stemcell '#{stemcell_id}'" if original_stemcell_vm.nil?
 
-      return original_stemcell_vm if vm_datastore_name(original_stemcell_vm) == to_datastore.name
+      if to_datastore
+        return original_stemcell_vm if vm_datastore_name(original_stemcell_vm) == to_datastore.name
 
-      @logger.info("Stemcell lives on a different datastore, looking for a local copy of: #{stemcell_id}.")
+        @logger.info("Stemcell lives on a different datastore, looking for a local copy of: #{stemcell_id}.")
 
-      name_of_replicated_stemcell = "#{stemcell_id} %2f #{to_datastore.mob.__mo_id__}"
+        name_of_replicated_stemcell = "#{stemcell_id} %2f #{to_datastore.mob.__mo_id__}"
 
-      replicated_stemcell_vm = client.find_vm_by_name(@datacenter.mob, name_of_replicated_stemcell)
-      return replicated_stemcell_vm if replicated_stemcell_vm
+        replicated_stemcell_vm = client.find_vm_by_name(@datacenter.mob, name_of_replicated_stemcell)
+        return replicated_stemcell_vm if replicated_stemcell_vm
 
-      @logger.info("Cluster doesn't have stemcell #{stemcell_id}, replicating")
-      @logger.info("Replicating #{stemcell_id} (#{original_stemcell_vm}) to #{name_of_replicated_stemcell}")
+        @logger.info("Cluster doesn't have stemcell #{stemcell_id}, replicating")
+        @logger.info("Replicating #{stemcell_id} (#{original_stemcell_vm}) to #{name_of_replicated_stemcell}")
+      else
+        name_of_replicated_stemcell = "#{stemcell_id} %2f #{SecureRandom.uuid}"
+        @logger.info("Replicating #{stemcell_id} (#{original_stemcell_vm}) to #{name_of_replicated_stemcell}")
+      end
       begin
         replicated_stemcell_vm = client.wait_for_task do
           clone_vm(
@@ -528,7 +533,8 @@ module VSphereCloud
             name_of_replicated_stemcell,
             @datacenter.template_folder.mob,
             cluster.resource_pool.mob,
-            datastore: to_datastore.mob
+            datastore: to_datastore&.mob,
+             datastore_cluster: datastore_cluster
           )
         end
         @logger.info("Replicated #{stemcell_id} (#{original_stemcell_vm}) to #{name_of_replicated_stemcell} (#{replicated_stemcell_vm})")
@@ -659,7 +665,6 @@ module VSphereCloud
         vm.clone(folder, name, clone_spec)
       end
     end
-
 
     # This method is used by micro bosh deployment cleaner
     def get_vms

@@ -12,7 +12,13 @@ module VSphereCloud
       @enable_auto_anti_affinity_drs_rules = enable_auto_anti_affinity_drs_rules
     end
 
+    #if sdrs is enabled on atleast 1 of the cluster, pick 1 and proceed
+    #if not then log and error and continue with usual datastore flow
     def choose_storage(vm_config)
+      if vm_config.datastore_clusters.any?
+        return vm_config.sdrs_enabled_datastore_clusters.first if vm_config.sdrs_enabled_datastore_clusters.any?
+        @logger.info("None of the datastore clusters have sdrs enabled")
+      end
       vm_config.cluster.accessible_datastores[vm_config.ephemeral_datastore_name]
     end
 

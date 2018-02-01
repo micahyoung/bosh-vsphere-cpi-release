@@ -93,7 +93,8 @@ context 'when datastore cluster is also defined in vm_type' do
         delete_vm(cpi, vm_id)
       end
     end
-    it 'should place vm in the given resource pool' do
+    it 'should place vm in the given resource pool and ephemeral disk in datastore part of datastore cluster' do
+      expect_any_instance_of(VSphereCloud::VmCreator).to receive(:choose_storage).with(anything).and_return(datastore_cluster_1)
       vm_type.merge({
         datacenters: [{
           clusters: [{ @cluster_name => { 'resource_pool' => @resource_pool_name } }],
@@ -110,6 +111,11 @@ context 'when datastore cluster is also defined in vm_type' do
         )
         expect(vm_id).to_not be_nil
         vm = cpi.vm_provider.find(vm_id)
+        ephemeral_disk = vm.ephemeral_disk
+        expect(ephemeral_disk).to_not be_nil
+
+        ephemeral_datastore = ephemeral_disk.backing.datastore
+        expect(ephemeral_datastore.name).to eq(@datastore_in_dc)
         expect(vm.resource_pool).to eq(@resource_pool_name)
       ensure
         delete_vm(cpi, vm_id)

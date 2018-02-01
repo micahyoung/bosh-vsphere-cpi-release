@@ -510,7 +510,7 @@ module VSphereCloud
       original_stemcell_vm = self.client.find_vm_by_name(@datacenter.mob, stemcell_id)
       raise "Could not find VM for stemcell '#{stemcell_id}'" if original_stemcell_vm.nil?
       begin
-        if to_datastore
+        unless datastore_cluster
           return original_stemcell_vm if vm_datastore_name(original_stemcell_vm) == to_datastore.name
 
           @logger.info("Stemcell lives on a different datastore, looking for a local copy of: #{stemcell_id}.")
@@ -557,7 +557,8 @@ module VSphereCloud
             replicated_stemcell_vm = result.vm
             replicated_stemcell_vm.rename(name_of_replicated_stemcell)
           else
-            raise 'Invalid Recommendation' #TODO: replace it with appropriate error
+            @logger.info("No recommendation from SDRS for replicating #{stemcell_id} (#{original_stemcell_vm})")
+            raise 'No placement found for stemcell' #TODO updpate with correct error
           end
         end
         @logger.info("Replicated #{stemcell_id} (#{original_stemcell_vm}) to #{name_of_replicated_stemcell} (#{replicated_stemcell_vm})")
@@ -719,9 +720,12 @@ module VSphereCloud
       clone_spec.power_on = options[:power_on] ? true : false
       clone_spec.snapshot = options[:snapshot] if options[:snapshot]
       clone_spec.template = false
+
       storage_pod = options[:datastore_cluster].mob
+
       initial_vm_config = Vim::StorageDrs::PodSelectionSpec::VmPodConfig.new
       initial_vm_config.storage_pod = storage_pod
+      initial_vm_config.vm_config = Vim::StorageDrs::VmConfigInfo.new(enabled: false) #disable DRS for stemcell
 
       pod_selection_spec = Vim::StorageDrs::PodSelectionSpec.new(storage_pod: storage_pod)
       pod_selection_spec.initial_vm_config = initial_vm_config
@@ -735,7 +739,12 @@ module VSphereCloud
       storage_placement_spec.pod_selection_spec = pod_selection_spec
       srm = @client.service_instance.content.storage_resource_manager
       storage_placement_result = srm.recommend_datastores(storage_placement_spec)
-      storage_placement_result.recommendations.first
+      if storage_placement_result.drs_fault
+        @logger.info("Error raised when fetching recommendation from SDRS: #{storage_placement_result.drs_fault.reason}")
+        raise 'DrsFault' #tODO: create and error raise it
+      else
+        storage_placement_result.recommendations.first
+      end
     end
 
     # This method is used by micro bosh deployment cleaner

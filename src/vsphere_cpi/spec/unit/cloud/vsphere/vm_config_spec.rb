@@ -703,29 +703,6 @@ module VSphereCloud
     end
 
     describe '#datastore_clusters' do
-
-      let(:client) do
-        client = instance_double(VSphereCloud::VCenterClient)
-        allow(client).to receive(:find_by_inventory_path).with('/fake-datacenter-name/datastore/fake-sp1').and_return(drs_enabled_datastore_cluster)
-        allow(client).to receive(:find_by_inventory_path).with('/fake-datacenter-name/datastore/fake-sp2').and_return(drs_disabled_datastore_cluster)
-        client
-      end
-
-      let(:cluster_provider) do
-        instance_double(VSphereCloud::Resources::ClusterProvider,
-                        client: client,
-                        datacenter_name: 'fake-datacenter-name')
-      end
-      let(:summary) {double('storage_pod_summart', name: 'fake-sp1')}
-
-      let(:drs_enabled_datastore_cluster) do
-        instance_double(VimSdk::Vim::StoragePod, name: 'fake-sp1', summary: summary)
-      end
-
-      let(:drs_disabled_datastore_cluster) do
-        instance_double(VimSdk::Vim::StoragePod, name: 'fake-sp2')
-      end
-
       context 'datastore_clusters are NOT specified' do
         let(:input) do
           {
@@ -743,16 +720,45 @@ module VSphereCloud
         let(:input) do
           {
             vm_type: {
-              'datastores' => ['fake-datastore', { 'clusters' => [{drs_enabled_datastore_cluster.name => {}}, {drs_disabled_datastore_cluster.name => {} }] }]
+              'datastores' => ['fake-datastore', { 'clusters' => [{'fake-sp1' => {}}, {'fake-sp2' => {} }] }]
             }
           }
         end
-        it 'should return array of datastore clusters which have drs enabled' do
-           allow(drs_enabled_datastore_cluster).to receive_message_chain(:pod_storage_drs_entry, :storage_drs_config, :pod_config, :enabled).and_return(true)
-           allow(drs_disabled_datastore_cluster).to receive_message_chain(:pod_storage_drs_entry, :storage_drs_config, :pod_config, :enabled).and_return(false)
-          expect(vm_config.datastore_clusters.length).to eq(1)
-          expect(vm_config.datastore_clusters.first.name).to eq('fake-sp1')
+        it 'should return array of datastore clusters' do
+          expect(vm_config.datastore_clusters).to eq([{'fake-sp1' => {}}, {'fake-sp2' => {} }])
         end
+      end
+    end
+
+    describe '#sdrs_enabled_datastore_clusters' do
+      let(:client) do
+        client = instance_double(VSphereCloud::VCenterClient)
+        allow(client).to receive(:find_by_inventory_path).with('/fake-datacenter-name/datastore/fake-sp1').and_return(drs_enabled_datastore_cluster)
+        allow(client).to receive(:find_by_inventory_path).with('/fake-datacenter-name/datastore/fake-sp2').and_return(drs_disabled_datastore_cluster)
+        client
+      end
+      let(:cluster_provider) do
+        instance_double(VSphereCloud::Resources::ClusterProvider,
+                        client: client,
+                        datacenter_name: 'fake-datacenter-name')
+      end
+      let(:input) do
+        {
+          vm_type: {
+            'datastores' => ['fake-datastore', { 'clusters' => [{drs_enabled_datastore_cluster.name => {}}, {drs_disabled_datastore_cluster.name => {} }] }]
+          }
+        }
+      end
+      let(:datastore_clusters) {[drs_enabled_datastore_cluster, drs_disabled_datastore_cluster]}
+      let(:summary) {double('storage_pod_summary', name: 'fake-sp1')}
+      let(:drs_enabled_datastore_cluster) { instance_double(VimSdk::Vim::StoragePod, name: 'fake-sp1', summary: summary) }
+      let(:drs_disabled_datastore_cluster) { instance_double(VimSdk::Vim::StoragePod, name: 'fake-sp2') }
+
+      it 'should return array of datastore clusters which have sdrs enabled' do
+        allow(drs_enabled_datastore_cluster).to receive_message_chain(:pod_storage_drs_entry, :storage_drs_config, :pod_config, :enabled).and_return(true)
+        allow(drs_disabled_datastore_cluster).to receive_message_chain(:pod_storage_drs_entry, :storage_drs_config, :pod_config, :enabled).and_return(false)
+        expect(vm_config.sdrs_enabled_datastore_clusters.length).to eq(1)
+        expect(vm_config.sdrs_enabled_datastore_clusters.first.name).to eq('fake-sp1')
       end
     end
   end

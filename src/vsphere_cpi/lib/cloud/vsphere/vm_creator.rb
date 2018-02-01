@@ -22,9 +22,6 @@ module VSphereCloud
       vm_config.cluster.accessible_datastores[vm_config.ephemeral_datastore_name]
     end
 
-    #TODO: DC - ask for recommendation, then look if stemcell exists on recommended datastore and if it does return that else
-    #replicate the stemcell by applying recommendations
-
     def create(vm_config)
       cluster = vm_config.cluster
       storage = choose_storage(vm_config)

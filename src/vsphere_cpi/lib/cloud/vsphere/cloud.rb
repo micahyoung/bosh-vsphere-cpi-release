@@ -741,7 +741,7 @@ module VSphereCloud
       storage_placement_result = srm.recommend_datastores(storage_placement_spec)
       if storage_placement_result.drs_fault
         @logger.info("Error raised when fetching recommendation from SDRS: #{storage_placement_result.drs_fault.reason}")
-        raise 'DrsFault' #tODO: create and error raise it
+        raise 'DrsFault' #TODO: create and error raise it
       else
         storage_placement_result.recommendations.first
       end

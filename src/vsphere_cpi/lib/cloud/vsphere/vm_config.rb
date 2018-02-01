@@ -190,6 +190,7 @@ module VSphereCloud
 
     def datastore_clusters_spec
       datastore_clusters_spec = []
+      return datastore_clusters_spec unless vm_type['datastores'] && vm_type['datastores'].any?
       vm_type['datastores'].each do |entry|
         hash = Hash.try_convert(entry)
         next if hash.nil?

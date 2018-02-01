@@ -50,11 +50,11 @@ end
 
 context 'when datastore cluster is also defined in vm_type' do
   before (:all) do
-    do_setup
     @datacenter_name = fetch_and_verify_datacenter('BOSH_VSPHERE_CPI_DATACENTER')
     @datastore_cluster = fetch_and_verify_datastore_cluster('BOSH_VSPHERE_CPI_DATASTORE_CLUSTER')
+    @datastore_cluster_drs_disabled = fetch_and_verify_datastore_cluster('BOSH_VSPHERE_CPI_DATASTORE_CLUSTER_DRS_DISABLED')
     @cluster_name = fetch_and_verify_cluster('BOSH_VSPHERE_CPI_CLUSTER')
-    @resource_pool_name = fetch_and_verify_resource_pool('BOSH_VSPHERE_CPI_RESOURCE_POOL', @cluster_name)
+    @resource_pool_name = fetch_and_verify_resource_pool('BOSH_VSPHERE_CPI_SECOND_RESOURCE_POOL', @cluster_name)
     @datastore_in_dc = fetch_and_verify_datastore('BOSH_VSPHERE_CPI_SHARED_DATASTORE', @cluster_name) #datastore which is part of datastore cluster
     @another_datastore = fetch_and_verify_datastore('BOSH_VSPHERE_CPI_DATASTORE_PATTERN', @cluster_name)
   end
@@ -66,14 +66,13 @@ context 'when datastore cluster is also defined in vm_type' do
       'ram' => 512,
       'disk' => 2048,
       'cpu' => 1,
-      'datastores' => [@another_datastore, 'cluster' => [@datastore_cluster => {}]]
+      'datastores' => [@another_datastore, 'clusters' => datastore_clusters]
     }
   end
   context 'and drs is enabled' do
-    let(:datastore_cluster_1) { VSphereCloud::Resources::StoragePod.find(@datastore_cluster, @datacenter_name, @client) }
+    let(:datastore_clusters) { [@datastore_cluster => {}] }
     it 'should place the ephemeral disk in datastore part of datastore cluster' do
       begin
-        expect_any_instance_of(VSphereCloud::VmCreator).to receive(:choose_storage).with(anything).and_return(datastore_cluster_1)
         vm_id = cpi.create_vm(
           'agent-007',
           @stemcell_id,
@@ -94,10 +93,9 @@ context 'when datastore cluster is also defined in vm_type' do
       end
     end
     it 'should place vm in the given resource pool and ephemeral disk in datastore part of datastore cluster' do
-      expect_any_instance_of(VSphereCloud::VmCreator).to receive(:choose_storage).with(anything).and_return(datastore_cluster_1)
-      vm_type.merge({
-        datacenters: [{
-          clusters: [{ @cluster_name => { 'resource_pool' => @resource_pool_name } }],
+      vm_type.merge!({
+        'datacenters' => [{
+          'clusters' => [{ @cluster_name => { 'resource_pool' => @resource_pool_name } }],
         }]
       })
       begin
@@ -123,9 +121,8 @@ context 'when datastore cluster is also defined in vm_type' do
     end
   end
   context 'and drs is not enabled' do
+    let(:datastore_clusters){ [@datastore_cluster_drs_disabled => {}] }
     it 'should place disk in datastore' do
-      #turn_drs_off_for_datastore_cluster(cpi, @datastore_cluster)
-      #datastore_cluster.pod_storage_drs_entry.storage_drs_config.pod_config.enabled or stub this method to return false
       begin
         vm_id = cpi.create_vm(
           'agent-007',
@@ -146,19 +143,5 @@ context 'when datastore cluster is also defined in vm_type' do
         delete_vm(cpi, vm_id)
       end
     end
-  end
-
-  def do_setup
-    host = ENV.fetch('BOSH_VSPHERE_CPI_HOST')
-    user = ENV.fetch('BOSH_VSPHERE_CPI_USER')
-    password = ENV.fetch('BOSH_VSPHERE_CPI_PASSWORD')
-    logger = Logger.new(StringIO.new(""))
-
-    @client = VSphereCloud::VCenterClient.new(
-      vcenter_api_uri: URI.parse("https://#{host}/sdk/vimService"),
-      http_client: VSphereCloud::CpiHttpClient.new(logger),
-      logger: logger,
-    )
-    @client.login(user, password, 'en')
   end
 end

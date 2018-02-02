@@ -201,14 +201,14 @@ resources:
     source:
       uri:          git@github.com:ktchen14/vcpi-pool.git
       branch:       master
-      pool:         TA65
+      pool:         NJ65
       private_key:  {{vcpi-pool_deployment_key}}
   - name: nimbus-environments-6.0
     type: pool
     source:
       uri:          git@github.com:ktchen14/vcpi-pool.git
       branch:       master
-      pool:         TA60
+      pool:         NJ60
       private_key:  {{vcpi-pool_deployment_key}}
   - name: bosh-cpi-artifacts
     type: s3

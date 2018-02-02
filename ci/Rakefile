@@ -42,7 +42,7 @@ task :pipeline, :name do |t, args|
   DBCUSER = ENV.fetch('DBCUSER') { require 'etc'; Etc.getpwuid.name }
 
   branch = ENV.fetch('BRANCH') { `git symbolic-ref -q --short HEAD` }
-  branch.strip!
+  #branch = branch.strip!
 
   args.with_defaults(name: ENV.fetch('PIPELINE') do
     if branch.empty?

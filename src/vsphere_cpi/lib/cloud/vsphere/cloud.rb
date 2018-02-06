@@ -694,13 +694,14 @@ module VSphereCloud
         storage_placement_spec.pod_selection_spec = pod_selection_spec
         srm = @client.service_instance.content.storage_resource_manager
         storage_placement_result = srm.recommend_datastores(storage_placement_spec)
-        recommendation = storage_placement_result.recommendations.first
-        if recommendation
-          srm.apply_recommendation(recommendation.key)
+        if storage_placement_result.drs_fault
+          @logger.info("Error raised when fetching recommendation from SDRS: #{storage_placement_result.drs_fault.reason}")
+          raise "Storage DRS failed to make a recommendation: #{storage_placement_result.drs_fault.reason}"
         else
-          raise 'No recommendation from DRS'
-          #TODO raise an error as receiver expects a task
+          recommendation = storage_placement_result.recommendations.first
+          raise "Storage DRS failed to make a recommendation for stemcell #{name} replication" unless recommendation
         end
+        srm.apply_recommendation(recommendation.key)
       else
         vm.clone(folder, name, clone_spec)
       end
@@ -741,9 +742,11 @@ module VSphereCloud
       storage_placement_result = srm.recommend_datastores(storage_placement_spec)
       if storage_placement_result.drs_fault
         @logger.info("Error raised when fetching recommendation from SDRS: #{storage_placement_result.drs_fault.reason}")
-        raise 'DrsFault' #TODO: create and error raise it
+        raise "Storage DRS failed to make a recommendation: #{storage_placement_result.drs_fault.reason}"
       else
-        storage_placement_result.recommendations.first
+        recommendation = storage_placement_result.recommendations.first
+        raise "Storage DRS failed to make a recommendation for stemcell #{name} replication" unless recommendation
+        recommendation
       end
     end
 

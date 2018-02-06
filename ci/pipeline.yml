@@ -1,8 +1,3 @@
-meta:
-  slack:
-    notification: '(( concat ":concourse-fail: <" meta.url "/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME| Failed to build " meta.name "!  Click for details.>" ))'
-    username:      CPI-Doctor
-
 jobs:
   - name: pyvmomi_to_ruby-tests
     plan:
@@ -162,9 +157,19 @@ jobs:
         on_failure:
           put: notify
           params:
-            username: (( grab meta.slack.username ))
-            text:     (( grab meta.slack.notification ))
-
+            username: 'CPI-Doctor'
+            text: |
+              The bats test failed. Check it out at: https://pksci.vcna.io/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME
+        on_success:
+          put: notify
+          params:
+            username: 'CPI-Doctor'
+            text: |
+              The bats tests passed. Check it out at: https://pksci.vcna.io/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME
+        ensure:
+          do:
+            - task: teardown
+              file: bosh-cpi-src/ci/tasks/teardown.yml
 
   - name: unlock-bats
     plan:

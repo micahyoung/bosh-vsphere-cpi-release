@@ -1,3 +1,8 @@
+meta:
+  slack:
+    notification: '(( concat ":concourse-fail: <" meta.url "/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME| Failed to build " meta.name "!  Click for details.>" ))'
+    username:      CPI-Doctor
+
 jobs:
   - name: pyvmomi_to_ruby-tests
     plan:
@@ -154,6 +159,11 @@ jobs:
             BAT_NETWORKING:     manual
             BAT_RSPEC_FLAGS:    "./spec/bat/bosh_helper_spec.rb:24"
             STEMCELL_NAME:      bosh-vsphere-esxi-ubuntu-trusty-go_agent
+        on_failure:
+          put: notify
+          params:
+            username: (( grab meta.slack.username ))
+            text:     (( grab meta.slack.notification ))
 
 
   - name: unlock-bats
@@ -190,7 +200,18 @@ jobs:
     - put: release-version-semver
       params: {file: release-version-semver/number}
 
+
+resource_types:
+  - name: slack-notification
+    type: docker-image
+    source:
+      repository: cfcommunity/slack-notification-resource
+
 resources:
+  - name: notify
+    type: slack-notification
+    source:
+      url: {{slack_webhook}}
   - name: release-version-semver
     type: semver
     source:

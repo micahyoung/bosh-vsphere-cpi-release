@@ -104,7 +104,7 @@ jobs:
           NSXT_SKIP_SSL_VERIFY: "true"
         on_failure:
           put: nimbus-environments-6.0
-          params: {release: nimbus-environments-6.0}
+          params: {remove: nimbus-environments-6.0}
 
   - name: unlock-6.0
     plan:
@@ -155,8 +155,11 @@ jobs:
           params:
             BAT_INFRASTRUCTURE: vsphere
             BAT_NETWORKING:     manual
-            BAT_RSPEC_FLAGS:    "./spec/bat/bosh_helper_spec.rb:24"
+            BAT_RSPEC_FLAGS:    "--tag ~dns --tag ~vip_networking --tag ~dynamic_networking --tag ~root_partition --tag ~raw_ephemeral_storage"
             STEMCELL_NAME:      bosh-vsphere-esxi-ubuntu-trusty-go_agent
+        on_failure:
+          put: environment
+          params : {remove: environment}
         on_failure:
           put: notify
           params:

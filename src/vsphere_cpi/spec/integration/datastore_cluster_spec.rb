@@ -55,7 +55,7 @@ context 'when datastore cluster is also defined in vm_type' do
     @datastore_cluster_drs_disabled = fetch_and_verify_datastore_cluster('BOSH_VSPHERE_CPI_DATASTORE_CLUSTER_DRS_DISABLED')
     @cluster_name = fetch_and_verify_cluster('BOSH_VSPHERE_CPI_CLUSTER')
     @resource_pool_name = fetch_and_verify_resource_pool('BOSH_VSPHERE_CPI_SECOND_RESOURCE_POOL', @cluster_name)
-    @datastore_in_dc = fetch_and_verify_datastore('BOSH_VSPHERE_CPI_SHARED_DATASTORE', @cluster_name) #datastore which is part of datastore cluster
+    @datastore_in_dc = fetch_and_verify_datastore('BOSH_VSPHERE_CPI_SECOND_DATASTORE', @cluster_name) #datastore which is part of datastore cluster
     @another_datastore = fetch_and_verify_datastore('BOSH_VSPHERE_CPI_DATASTORE_PATTERN', @cluster_name)
   end
   let(:cpi) do

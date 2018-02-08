@@ -12,16 +12,6 @@ module VSphereCloud
       @enable_auto_anti_affinity_drs_rules = enable_auto_anti_affinity_drs_rules
     end
 
-    #if sdrs is enabled on atleast 1 of the cluster, pick 1 and proceed
-    #if not then log and error and continue with usual datastore flow
-    def choose_storage(vm_config)
-      if vm_config.datastore_clusters.any?
-        return vm_config.sdrs_enabled_datastore_clusters.first if vm_config.sdrs_enabled_datastore_clusters.any?
-        @logger.info("None of the datastore clusters have sdrs enabled")
-      end
-      vm_config.cluster.accessible_datastores[vm_config.ephemeral_datastore_name]
-    end
-
     def create(vm_config)
       cluster = vm_config.cluster
       storage = choose_storage(vm_config)
@@ -171,6 +161,29 @@ module VSphereCloud
         @logger
       )
       drs_rule.add_vm(vm_mob)
+    end
+
+    # choose storage from set of datastore and sdrs enabled datastore clusters
+    # using weight based algorithm on free space to choose the storage
+    # if datastore clusters are provided and none of them have sdrs enabled log an error
+    def choose_storage(vm_config)
+      storage_options = [ vm_config.cluster.accessible_datastores[vm_config.ephemeral_datastore_name]]
+      if vm_config.datastore_clusters.any?
+        sdrs_enabled_datastore_clusters = vm_config.sdrs_enabled_datastore_clusters
+        @logger.info("None of the datastore clusters have sdrs enabled") unless sdrs_enabled_datastore_clusters.any?
+        storage_options << vm_config.sdrs_enabled_datastore_clusters
+      end
+      weighted_random_sort(storage_options.flatten).first
+    end
+
+    def weighted_random_sort(storage_options)
+      random_hash = {}
+      storage_options.each do |storage_option|
+        random_hash[storage_option.mob.__mo_id__] = Random.rand * storage_option.free_space
+      end
+      storage_options.sort do |x,y|
+        random_hash[y.mob.__mo_id__] <=> random_hash[x.mob.__mo_id__]
+      end
     end
   end
 end

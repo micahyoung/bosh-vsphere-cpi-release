@@ -12,7 +12,7 @@ module VSphereCloud
       end
 
       def free_space
-        mob.summary.free_space
+        mob.summary.free_space.to_i / BYTES_IN_MB
       end
 
       def capacity

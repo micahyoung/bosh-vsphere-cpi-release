@@ -238,7 +238,7 @@ module VSphereCloud
       context 'when stemcell vm needs to be replicated to a datastore inside datastore_cluster' do
         let(:replicated_stemcell) { double('fake_replicated_stemcell', rename: 'renamed-vm') }
         let (:target_datastore_cluster) {instance_double(Resources::StoragePod, mob: 'fake_storage_pod_mob')}
-        let(:recommended_datastore) { double('datastore', __mo_id__: 'recommended-datastore-id')}
+        let(:recommended_datastore) { double('datastore', __mo_id__: 'recommended-datastore-id', name: 'fake-ds')}
         let(:fake_task) { 'fake_task' }
         let(:resource_pool) { double(:resource_pool, mob: 'fake_resource_pool_mob') }
         let(:srm) { instance_double(VimSdk::Vim::StorageResourceManager) }
@@ -251,6 +251,7 @@ module VSphereCloud
           allow(vsphere_cloud).to receive(:get_recommendation_for_stemcell).with(stemcell_vm, anything, anything, resource_pool.mob, expected_options).and_return(recommendation)
           allow(recommendation).to receive_message_chain(:action, :first, :destination).and_return(recommended_datastore)
           allow(recommendation).to receive_message_chain(:action, :first, :destination, :class).and_return(VimSdk::Vim::Datastore)
+          allow(recommendation).to receive_message_chain(:action, :first, :destination, :name).and_return(recommended_datastore.name)
           allow(vcenter_client).to receive(:find_vm_by_name).with(datacenter.mob, stemcell_id).and_return(stemcell_vm)
           @name_of_replicated_stemcell = "#{stemcell_id} %2f #{recommended_datastore.__mo_id__}"
         end
@@ -989,7 +990,7 @@ module VSphereCloud
       let(:datastore_cluster) {instance_double(Resources::StoragePod, mob: 'fake_storage_pod_mob')}
       let(:recommendation) { double('Recommendation', key: 'first_recommendation') }
       let(:srm) { instance_double(VimSdk::Vim::StorageResourceManager) }
-      let(:storage_placement_result) { instance_double(VimSdk::Vim::StorageDrs::StoragePlacementResult) }
+      let(:storage_placement_result) { instance_double(VimSdk::Vim::StorageDrs::StoragePlacementResult, drs_fault: nil) }
       let(:apply_recommendation_result) { instance_double(VimSdk::Vim::StorageDrs::ApplyRecommendationResult) }
 
       before do
@@ -1126,7 +1127,6 @@ module VSphereCloud
         }.to raise_error(/Storage DRS failed to make a recommendation: storageVmotion error/)
       end
     end
-
 
     describe '#calculate_vm_cloud_properties' do
       context 'when ram, cpu, and ephemeral_disk are specified' do

@@ -731,12 +731,7 @@ module VSphereCloud
     end
 
     describe '#sdrs_enabled_datastore_clusters' do
-      let(:client) do
-        client = instance_double(VSphereCloud::VCenterClient)
-        allow(client).to receive(:find_by_inventory_path).with('/fake-datacenter-name/datastore/fake-sp1').and_return(drs_enabled_datastore_cluster)
-        allow(client).to receive(:find_by_inventory_path).with('/fake-datacenter-name/datastore/fake-sp2').and_return(drs_disabled_datastore_cluster)
-        client
-      end
+      let(:client) { instance_double(VSphereCloud::VCenterClient) }
       let(:cluster_provider) do
         instance_double(VSphereCloud::Resources::ClusterProvider,
                         client: client,
@@ -750,13 +745,12 @@ module VSphereCloud
         }
       end
       let(:datastore_clusters) {[drs_enabled_datastore_cluster, drs_disabled_datastore_cluster]}
-      let(:summary) {double('storage_pod_summary', name: 'fake-sp1')}
-      let(:drs_enabled_datastore_cluster) { instance_double(VimSdk::Vim::StoragePod, name: 'fake-sp1', summary: summary) }
-      let(:drs_disabled_datastore_cluster) { instance_double(VimSdk::Vim::StoragePod, name: 'fake-sp2') }
+      let(:drs_enabled_datastore_cluster) { double('StoragePod', drs_enabled?: true, name: 'fake-sp1') }
+      let(:drs_disabled_datastore_cluster) { double('StoragePodDrsDsiabled', drs_enabled?: false, name: 'fake-sp2') }
 
       it 'should return array of datastore clusters which have sdrs enabled' do
-        allow(drs_enabled_datastore_cluster).to receive_message_chain(:pod_storage_drs_entry, :storage_drs_config, :pod_config, :enabled).and_return(true)
-        allow(drs_disabled_datastore_cluster).to receive_message_chain(:pod_storage_drs_entry, :storage_drs_config, :pod_config, :enabled).and_return(false)
+        allow(VSphereCloud::Resources::StoragePod).to receive(:find).with(drs_enabled_datastore_cluster.name, 'fake-datacenter-name', client ).and_return(drs_enabled_datastore_cluster)
+        allow(VSphereCloud::Resources::StoragePod).to receive(:find).with(drs_disabled_datastore_cluster.name, 'fake-datacenter-name', client ).and_return(drs_disabled_datastore_cluster)
         expect(vm_config.sdrs_enabled_datastore_clusters.length).to eq(1)
         expect(vm_config.sdrs_enabled_datastore_clusters.first.name).to eq('fake-sp1')
       end

@@ -2,12 +2,13 @@
 
 set -e
 
-source bosh-cpi-src/ci/utils.sh
 source bosh-cpi-src/.envrc
-if [ -f /etc/profile.d/chruby.sh ]; then
-  source /etc/profile.d/chruby.sh
-  chruby $PROJECT_RUBY_VERSION
-fi
+
+source nimbus-environments-6.5/metadata
+export HTTP_PROXY="http://$BOSH_VSPHERE_JUMPER_HOST:80"
+export HTTPS_PROXY="http://$BOSH_VSPHERE_JUMPER_HOST:80"
+stemcell_dir="$( cd stemcell && pwd )"
+export BOSH_VSPHERE_STEMCELL=${stemcell_dir}/stemcell.tgz
 
 : ${RSPEC_FLAGS:=""}
 : ${BOSH_VSPHERE_STEMCELL:=""}
@@ -16,11 +17,6 @@ fi
 # e.g. ./run-lifecycle.sh spec/integration/core_spec.rb
 if [ "$#" -ne 0 ]; then
   RSPEC_ARGS="$@"
-fi
-
-if [ -z "${BOSH_VSPHERE_STEMCELL}" ]; then
-  stemcell_dir="$( cd stemcell && pwd )"
-  export BOSH_VSPHERE_STEMCELL=${stemcell_dir}/stemcell.tgz
 fi
 
 install_iso9660wrap() {
